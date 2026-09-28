@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажер Часу</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Таблиця на 24 години, що вміщується в 100vh */
+        .time-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .time-table td {
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            padding: 0 12px;
+            font-size: 13px;
+            color: #475569;
+            vertical-align: middle;
+            height: calc(100vh / 24);
+        }
+
+        .time-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .time-table td.period-cell {
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-right: none;
+            color: #334155;
+        }
+
+        /* Спокійні фонові кольори таблиці */
+        .bg-night-table { background-color: #f1f5f9; }
+        .bg-morning-table { background-color: #f8fafc; }
+        .bg-day-table { background-color: #ffffff; }
+        .bg-evening-table { background-color: #f4f4f5; }
+
+        /* Картка частини доби */
+        .period-card {
+            background: linear-gradient(135deg, #64748b, #475569);
+            color: #ffffff;
+        }
+
+        /* Анімації */
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+    </style>
+</head>
+<body class="flex flex-row w-full h-screen text-slate-800">
+
+    <!-- ЛІВА КОЛОНКА: Вікторина -->
+    <div class="flex-1 flex flex-col bg-slate-50 relative">
+        
+        <div id="quiz-container" class="w-full max-w-2xl mx-auto flex flex-col justify-center h-full px-8 py-6 fade-in relative">
+            
+            <!-- Лічильник питань -->
+            <div class="absolute top-8 left-8">
+                <span id="progress-text" class="text-xs font-bold text-slate-400 uppercase tracking-widest">Питання 1 / 10</span>
+            </div>
+
+            <h1 class="text-3xl font-semibold text-slate-700 text-center mb-8">Яку годину показує годинник?</h1>
+            
+            <!-- Візуальний блок (Годинник + Частина доби) -->
+            <div class="flex flex-row items-center justify-center gap-12 mb-10">
+                
+                <!-- Аналоговий годинник (SVG) -->
+                <div class="relative w-48 h-48 drop-shadow-sm">
+                    <svg viewBox="0 0 100 100" class="w-full h-full">
+                        <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+                        <g id="clock-numbers"></g>
+                        <!-- Хвилинна стрілка -->
+                        <line x1="50" y1="50" x2="50" y2="15" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
+                        <!-- Годинна стрілка -->
+                        <line id="hour-hand" x1="50" y1="50" x2="50" y2="28" stroke="#334155" stroke-width="3.5" stroke-linecap="round" class="transition-transform duration-500 ease-out origin-[50px_50px]" />
+                        <circle cx="50" cy="50" r="4" fill="#334155"/>
+                    </svg>
+                </div>
+
+                <!-- Плашка частини доби -->
+                <div class="period-card w-48 h-48 rounded-2xl flex flex-col items-center justify-center shadow-md">
+                    <div id="period-icon" class="mb-3 text-slate-100">
+                        <!-- Іконка через JS -->
+                    </div>
+                    <span id="period-text" class="text-xl font-medium tracking-wide">День</span>
+                </div>
+            </div>
+
+            <!-- БЛОК 1: 24-годинний формат -->
+            <div id="block1" class="mb-6 w-full">
+                <div id="options-24h" class="grid grid-cols-4 gap-4">
+                    <!-- Кнопки генеруються JS -->
+                </div>
+            </div>
+
+            <!-- БЛОК 2: AM/PM формат (Схований до правильної відповіді на блок 1) -->
+            <div id="block2" class="hidden flex-col w-full fade-in bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                
+                <!-- Правило -->
+                <div class="mb-5 bg-slate-50 border border-slate-200 rounded-lg p-4 text-slate-600 font-medium text-[15px] leading-relaxed">
+                    <p>кількість годин менше 12 -> am</p>
+                    <p>кількість годин більша або рівна 12 -> pm</p>
+                </div>
+
+                <p class="text-slate-700 font-medium mb-4 text-center text-lg">обери цей час у форматі am/pm</p>
+                
+                <div id="options-ampm" class="grid grid-cols-2 gap-4 max-w-sm mx-auto w-full">
+                    <!-- Кнопки генеруються JS -->
+                </div>
+            </div>
+
+            <!-- Кнопка "Наступне питання" -->
+            <div class="h-16 mt-6 flex justify-center items-end">
+                <button id="next-btn" class="hidden px-10 py-3 bg-slate-700 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors focus:outline-none shadow-sm fade-in">
+                    Наступне питання
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Екран завершення -->
+        <div id="completion-screen" class="hidden flex-col items-center justify-center h-full text-center fade-in">
+            <h2 class="text-3xl font-semibold text-slate-800 mb-4">Тренажер завершено</h2>
+            <p class="text-slate-500 mb-8 text-lg">Ви успішно пройшли всі питання.</p>
+            <button id="restart-btn" class="px-8 py-3 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition-colors">
+                Почати знову
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ПРАВА КОЛОНКА: Таблиця (380px) -->
+    <div class="w-[380px] shrink-0 border-l border-slate-300 bg-white">
+        <table class="time-table">
+            <tbody>
+                <!-- 00:00 - 03:00 Ніч (4) -->
+                <tr><td><span class="font-semibold w-12 inline-block">00:00</span> північ</td><td rowspan="4" class="period-cell bg-night-table">Ніч</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">01:00</span> перша ночі</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">02:00</span> друга ночі</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">03:00</span> третя ночі</td></tr>
+
+                <!-- 04:00 - 11:00 Ранок (8) -->
+                <tr><td><span class="font-semibold w-12 inline-block">04:00</span> четверта ранку</td><td rowspan="8" class="period-cell bg-morning-table">Ранок</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">05:00</span> п'ята ранку</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">06:00</span> шоста ранку</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">07:00</span> сьома ранку</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">08:00</span> восьма ранку</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">09:00</span> дев'ята ранку</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">10:00</span> десята ранку</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">11:00</span> одинадцята ранку</td></tr>
+
+                <!-- 12:00 - 16:00 День (5) -->
+                <tr><td><span class="font-semibold w-12 inline-block">12:00</span> дванадцята дня</td><td rowspan="5" class="period-cell bg-day-table">День</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">13:00</span> перша дня</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">14:00</span> друга дня</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">15:00</span> третя дня</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">16:00</span> четверта дня</td></tr>
+
+                <!-- 17:00 - 22:00 Вечір (6) -->
+                <tr><td><span class="font-semibold w-12 inline-block">17:00</span> п'ята вечора</td><td rowspan="6" class="period-cell bg-evening-table">Вечір</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">18:00</span> шоста вечора</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">19:00</span> сьома вечора</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">20:00</span> восьма вечора</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">21:00</span> дев'ята вечора</td></tr>
+                <tr><td><span class="font-semibold w-12 inline-block">22:00</span> десята вечора</td></tr>
+
+                <!-- 23:00 Ніч (1) -->
+                <tr><td><span class="font-semibold w-12 inline-block">23:00</span> одинадцята вечора</td><td rowspan="1" class="period-cell bg-night-table border-t border-slate-200">Ніч</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const quizData = [
+            { hour24: 14, period: 'День', options24: ["14:00", "02:00", "16:00", "04:00"] },
+            { hour24: 8,  period: 'Ранок', options24: ["08:00", "20:00", "06:00", "18:00"] },
+            { hour24: 19, period: 'Вечір', options24: ["19:00", "07:00", "21:00", "09:00"] },
+            { hour24: 2,  period: 'Ніч', options24: ["02:00", "14:00", "03:00", "15:00"] },
+            { hour24: 16, period: 'День', options24: ["16:00", "04:00", "14:00", "02:00"] },
+            { hour24: 6,  period: 'Ранок', options24: ["06:00", "18:00", "08:00", "20:00"] },
+            { hour24: 21, period: 'Вечір', options24: ["21:00", "09:00", "22:00", "10:00"] },
+            { hour24: 10, period: 'Ранок', options24: ["10:00", "22:00", "08:00", "20:00"] },
+            { hour24: 13, period: 'День', options24: ["13:00", "01:00", "15:00", "03:00"] },
+            { hour24: 23, period: 'Ніч', options24: ["23:00", "11:00", "22:00", "10:00"] }
+        ];
+
+        const periodIcons = {
+            'Ніч': `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`,
+            'Ранок': `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41M17 12a5 5 0 1 1-10 0"></path><path d="M22 18H2"></path></svg>`,
+            'День': `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
+            'Вечір': `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="2" x2="12" y2="9"></line><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"></line><line x1="22" y1="22" x2="2" y2="22"></line></svg>`
+        };
+
+        let currentQuestionIndex = 0;
+
+        // DOM Елементи
+        const progressText = document.getElementById('progress-text');
+        const hourHand = document.getElementById('hour-hand');
+        const periodIcon = document.getElementById('period-icon');
+        const periodText = document.getElementById('period-text');
+        const options24hContainer = document.getElementById('options-24h');
+        const block2 = document.getElementById('block2');
+        const optionsAmPmContainer = document.getElementById('options-ampm');
+        const nextBtn = document.getElementById('next-btn');
+        const quizContainer = document.getElementById('quiz-container');
+        const completionScreen = document.getElementById('completion-screen');
+        const restartBtn = document.getElementById('restart-btn');
+
+        function generateClockNumbers() {
+            const numbersGroup = document.getElementById('clock-numbers');
+            const radius = 35;
+            for (let i = 1; i <= 12; i++) {
+                const angle = (i * 30 - 90) * (Math.PI / 180);
+                const x = 50 + radius * Math.cos(angle);
+                const y = 50 + radius * Math.sin(angle);
+                
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", x);
+                text.setAttribute("y", y);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "central");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("font-family", "Inter, sans-serif");
+                text.setAttribute("font-weight", "500");
+                text.setAttribute("fill", "#475569");
+                text.textContent = i;
+                numbersGroup.appendChild(text);
+            }
+        }
+
+        function loadQuestion() {
+            const data = quizData[currentQuestionIndex];
+            
+            // Оновлення тексту прогресу
+            progressText.textContent = `Питання ${currentQuestionIndex + 1} / ${quizData.length}`;
+
+            // Поворот стрілки
+            hourHand.style.transform = `rotate(${data.hour24 * 30}deg)`;
+
+            // Оновлення картки частини доби
+            periodIcon.innerHTML = periodIcons[data.period];
+            periodText.textContent = data.period;
+
+            // Налаштування Блоку 1 (24h)
+            options24hContainer.innerHTML = '';
+            
+            // Форматування правильної відповіді (додавання нуля, якщо потрібно)
+            const correct24Str = data.hour24.toString().padStart(2, '0') + ":00";
+
+            data.options24.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "py-4 bg-white border border-slate-300 rounded-xl text-slate-700 font-medium text-lg hover:bg-slate-50 transition-colors focus:outline-none shadow-sm";
+                btn.textContent = opt;
+                btn.onclick = () => handleBlock1Click(btn, opt, correct24Str);
+                options24hContainer.appendChild(btn);
+            });
+
+            // Скидання Блоку 2 та кнопки "Наступне"
+            block2.classList.add('hidden');
+            block2.classList.remove('flex');
+            nextBtn.classList.add('hidden');
+        }
+
+        function handleBlock1Click(btn, selected, correct) {
+            if (selected === correct) {
+                // Правильно
+                btn.className = "py-4 bg-slate-700 border border-slate-700 rounded-xl text-white font-medium text-lg shadow-sm transition-colors";
+                
+                // Блокуємо інші кнопки
+                Array.from(options24hContainer.children).forEach(b => {
+                    b.disabled = true;
+                    if (b !== btn) b.classList.add('opacity-50', 'cursor-not-allowed');
+                });
+
+                showBlock2();
+            } else {
+                // Неправильно
+                btn.className = "py-4 bg-red-50 border border-red-300 text-red-600 rounded-xl font-medium text-lg shake shadow-sm";
+                setTimeout(() => {
+                    btn.className = "py-4 bg-white border border-slate-300 rounded-xl text-slate-700 font-medium text-lg hover:bg-slate-50 transition-colors focus:outline-none shadow-sm";
+                }, 400);
+            }
+        }
+
+        function showBlock2() {
+            const data = quizData[currentQuestionIndex];
+            optionsAmPmContainer.innerHTML = '';
+
+            // Обчислення AM/PM логіки
+            const hour12 = data.hour24 % 12 || 12; // 0 стає 12, 13 стає 1 тощо.
+            const isPm = data.hour24 >= 12;
+            const correctAmPm = isPm ? `${hour12}:00 pm` : `${hour12}:00 am`;
+
+            // Тільки 2 варіанти: один AM, інший PM
+            const options = [`${hour12}:00 am`, `${hour12}:00 pm`];
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-medium text-[17px] hover:bg-slate-100 transition-colors focus:outline-none shadow-sm";
+                btn.textContent = opt;
+                btn.onclick = () => handleBlock2Click(btn, opt, correctAmPm);
+                optionsAmPmContainer.appendChild(btn);
+            });
+
+            block2.classList.remove('hidden');
+            block2.classList.add('flex');
+        }
+
+        function handleBlock2Click(btn, selected, correct) {
+            if (selected === correct) {
+                btn.className = "py-3 bg-slate-700 border border-slate-700 rounded-lg text-white font-medium text-[17px] shadow-sm transition-colors";
+                
+                Array.from(optionsAmPmContainer.children).forEach(b => {
+                    b.disabled = true;
+                    if (b !== btn) b.classList.add('opacity-50', 'cursor-not-allowed');
+                });
+
+                nextBtn.classList.remove('hidden');
+            } else {
+                btn.className = "py-3 bg-red-50 border border-red-300 text-red-600 rounded-lg font-medium text-[17px] shake shadow-sm";
+                setTimeout(() => {
+                    btn.className = "py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-medium text-[17px] hover:bg-slate-100 transition-colors focus:outline-none shadow-sm";
+                }, 400);
+            }
+        }
+
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                // Перезапуск анімації
+                quizContainer.classList.remove('fade-in');
+                void quizContainer.offsetWidth;
+                quizContainer.classList.add('fade-in');
+                loadQuestion();
+            } else {
+                quizContainer.classList.add('hidden');
+                completionScreen.classList.remove('hidden');
+                completionScreen.classList.add('flex');
+            }
+        });
+
+        restartBtn.addEventListener('click', () => {
+            currentQuestionIndex = 0;
+            completionScreen.classList.add('hidden');
+            completionScreen.classList.remove('flex');
+            quizContainer.classList.remove('hidden');
+            loadQuestion();
+        });
+
+        // Ініціалізація
+        window.addEventListener('DOMContentLoaded', () => {
+            generateClockNumbers();
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>
